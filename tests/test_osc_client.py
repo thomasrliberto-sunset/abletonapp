@@ -52,14 +52,14 @@ def test_fire_clip_rejects_negative_indexes():
         client.fire_clip(-1, 0)
 
 
-def test_fire_clip_sends_clip_slot_fire():
+def test_fire_clip_sends_clip_fire():
     client = AbletonOSCClient()
 
     with patch.object(client, "status", return_value="ok"):
         with patch.object(client, "send") as send:
             client.fire_clip(1, 2)
 
-    send.assert_called_once_with("/live/clip_slot/fire", 1, 2)
+    send.assert_called_once_with("/live/clip/fire", 1, 2)
 
 
 def test_status_reports_missing_reply():

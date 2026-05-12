@@ -40,6 +40,7 @@ AbletonOSC listens on OSC port `11000` by default and sends replies to port
 
 ```powershell
 ableton-bridge status
+ableton-bridge doctor
 ableton-bridge play
 ableton-bridge stop
 ableton-bridge tempo 124
@@ -53,6 +54,10 @@ Common options:
 ableton-bridge --host 127.0.0.1 --port 11000 --reply-port 11001 status
 ableton-bridge --log-level DEBUG status
 ```
+
+Use `doctor` after installing AbletonOSC. It checks whether the local Remote
+Scripts folder exists and whether AbletonOSC replies on the configured OSC
+ports.
 
 ## Example
 

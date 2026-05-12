@@ -60,7 +60,7 @@ class AbletonOSCClient:
         if track_index < 0 or clip_index < 0:
             raise ValueError("Track and clip indexes must be zero or greater.")
         self.ensure_reachable()
-        self.send("/live/clip_slot/fire", int(track_index), int(clip_index))
+        self.send("/live/clip/fire", int(track_index), int(clip_index))
 
     def ensure_reachable(self) -> None:
         self.status()

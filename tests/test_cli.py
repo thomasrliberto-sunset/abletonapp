@@ -22,6 +22,37 @@ def test_tempo_command_uses_bpm():
     client_class.return_value.set_tempo.assert_called_once_with(128.0)
 
 
+def test_doctor_returns_zero_when_setup_and_status_are_ok(tmp_path, capsys):
+    remote_scripts = tmp_path / "Remote Scripts"
+    abletonosc = remote_scripts / "AbletonOSC"
+    abletonosc.mkdir(parents=True)
+    (abletonosc / "__init__.py").write_text("", encoding="utf-8")
+
+    with patch("ableton_bridge.cli.default_remote_scripts_path", return_value=remote_scripts):
+        with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+            client_class.return_value.status.return_value = "ok"
+
+            result = cli.main(["doctor"])
+
+    assert result == 0
+    assert "AbletonOSC installed" in capsys.readouterr().out
+
+
+def test_doctor_returns_nonzero_when_abletonosc_is_unreachable(tmp_path):
+    remote_scripts = tmp_path / "Remote Scripts"
+    abletonosc = remote_scripts / "AbletonOSC"
+    abletonosc.mkdir(parents=True)
+    (abletonosc / "__init__.py").write_text("", encoding="utf-8")
+
+    with patch("ableton_bridge.cli.default_remote_scripts_path", return_value=remote_scripts):
+        with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+            client_class.return_value.status.side_effect = AbletonOSCError("no reply")
+
+            result = cli.main(["doctor"])
+
+    assert result == 1
+
+
 def test_client_errors_return_nonzero():
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         client_class.return_value.status.side_effect = AbletonOSCError("no reply")

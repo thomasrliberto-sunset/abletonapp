@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Sequence
+from pathlib import Path
 
 from ableton_bridge.config import (
     DEFAULT_HOST,
@@ -45,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("status", help="Check whether AbletonOSC replies.")
+    subparsers.add_parser("doctor", help="Check local setup and AbletonOSC reachability.")
     subparsers.add_parser("play", help="Start playback.")
     subparsers.add_parser("stop", help="Stop playback.")
     subparsers.add_parser("tracks", help="List track names.")
@@ -57,6 +59,36 @@ def build_parser() -> argparse.ArgumentParser:
     fire_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
 
     return parser
+
+
+def default_remote_scripts_path() -> Path:
+    return Path.home() / "Documents" / "Ableton" / "User Library" / "Remote Scripts"
+
+
+def run_doctor(client: AbletonOSCClient) -> int:
+    exit_code = 0
+    remote_scripts = default_remote_scripts_path()
+    abletonosc = remote_scripts / "AbletonOSC"
+
+    if remote_scripts.exists():
+        print(f"Remote Scripts folder: {remote_scripts}")
+    else:
+        print(f"Remote Scripts folder missing: {remote_scripts}")
+        exit_code = 1
+
+    if (abletonosc / "__init__.py").exists():
+        print(f"AbletonOSC installed: {abletonosc}")
+    else:
+        print(f"AbletonOSC not found: {abletonosc}")
+        exit_code = 1
+
+    try:
+        print(f"AbletonOSC status: {client.status()}")
+    except AbletonOSCError as exc:
+        print(f"AbletonOSC not reachable: {exc}")
+        exit_code = 1
+
+    return exit_code
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -75,6 +107,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "status":
             print(f"AbletonOSC status: {client.status()}")
+        elif args.command == "doctor":
+            return run_doctor(client)
         elif args.command == "play":
             client.play()
             print("Playback started.")
