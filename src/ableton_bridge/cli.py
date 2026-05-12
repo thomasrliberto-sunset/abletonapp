@@ -49,9 +49,21 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("doctor", help="Check local setup and AbletonOSC reachability.")
     subparsers.add_parser("tempo-get", help="Print the current song tempo.")
     subparsers.add_parser("current-time", help="Print the current song time in beats.")
+    subparsers.add_parser("selected-track", help="Print the selected track index.")
+    subparsers.add_parser("selected-scene", help="Print the selected scene index.")
+    subparsers.add_parser("cue-points", help="List cue point names and beat positions.")
     subparsers.add_parser("play", help="Start playback.")
     subparsers.add_parser("stop", help="Stop playback.")
+    subparsers.add_parser("stop-all-clips", help="Stop all currently playing clips.")
     subparsers.add_parser("tracks", help="List track names.")
+
+    metronome_parser = subparsers.add_parser("metronome", help="Get or set metronome state.")
+    metronome_parser.add_argument(
+        "state",
+        nargs="?",
+        choices=("on", "off"),
+        help="Optional state to set.",
+    )
 
     tempo_parser = subparsers.add_parser("tempo", help="Set the song tempo.")
     tempo_parser.add_argument("bpm", type=float, help="Tempo in beats per minute.")
@@ -62,6 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     clips_parser = subparsers.add_parser("track-clips", help="List clip names on a track.")
     clips_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
+    stop_track_parser = subparsers.add_parser(
+        "stop-track-clips",
+        help="Stop all clips on one track.",
+    )
+    stop_track_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
+    scene_name_parser = subparsers.add_parser("scene-name", help="Print a scene name.")
+    scene_name_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
 
     return parser
 
@@ -118,12 +139,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Tempo: {client.get_tempo():g} BPM")
         elif args.command == "current-time":
             print(f"Current time: {client.current_time():g} beats")
+        elif args.command == "selected-track":
+            print(f"Selected track: {client.selected_track()}")
+        elif args.command == "selected-scene":
+            print(f"Selected scene: {client.selected_scene()}")
+        elif args.command == "scene-name":
+            print(f"Scene {args.scene_index}: {client.scene_name(args.scene_index)}")
+        elif args.command == "cue-points":
+            cue_points = client.cue_points()
+            if cue_points:
+                for name, time in cue_points:
+                    print(f"{name}: {time:g} beats")
+            else:
+                print("No cue points returned by AbletonOSC.")
+        elif args.command == "metronome":
+            if args.state is None:
+                state = "on" if client.get_metronome() else "off"
+                print(f"Metronome: {state}")
+            else:
+                client.set_metronome(args.state == "on")
+                print(f"Metronome set to {args.state}.")
         elif args.command == "play":
             client.play()
             print("Playback started.")
         elif args.command == "stop":
             client.stop()
             print("Playback stopped.")
+        elif args.command == "stop-all-clips":
+            client.stop_all_clips()
+            print("Stopped all clips.")
         elif args.command == "tempo":
             client.set_tempo(args.bpm)
             print(f"Tempo set to {args.bpm:g} BPM.")
@@ -144,6 +188,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"{index}: {name}")
             else:
                 print(f"No clips returned for track {args.track_index}.")
+        elif args.command == "stop-track-clips":
+            client.stop_track_clips(args.track_index)
+            print(f"Stopped all clips on track {args.track_index}.")
     except (AbletonOSCError, OSError, ValueError) as exc:
         logging.error("%s", exc)
         return 1

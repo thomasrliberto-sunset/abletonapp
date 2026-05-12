@@ -34,6 +34,34 @@ def test_set_tempo_rejects_non_positive_bpm():
         client.set_tempo(0)
 
 
+def test_stop_all_clips_checks_status_then_sends_stop_all():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok") as status:
+        with patch.object(client, "send") as send:
+            client.stop_all_clips()
+
+    status.assert_called_once_with()
+    send.assert_called_once_with("/live/song/stop_all_clips")
+
+
+def test_stop_track_clips_sends_track_index():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.stop_track_clips(2)
+
+    send.assert_called_once_with("/live/track/stop_all_clips", 2)
+
+
+def test_stop_track_clips_rejects_negative_index():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.stop_track_clips(-1)
+
+
 def test_get_tempo_returns_float_from_reply():
     client = AbletonOSCClient()
 
@@ -56,6 +84,27 @@ def test_current_time_returns_float_from_reply():
         assert client.current_time() == 32.0
 
 
+def test_get_metronome_returns_bool_from_reply():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/song/get/metronome", (1,)),
+    ):
+        assert client.get_metronome() is True
+
+
+def test_set_metronome_sends_integer_state():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_metronome(False)
+
+    send.assert_called_once_with("/live/song/set/metronome", 0)
+
+
 def test_tracks_returns_names_from_reply():
     client = AbletonOSCClient()
 
@@ -65,6 +114,57 @@ def test_tracks_returns_names_from_reply():
         return_value=OSCReply("/live/song/get/track_names", ("Drums", "Bass")),
     ):
         assert client.tracks() == ("Drums", "Bass")
+
+
+def test_selected_track_returns_index():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/view/get/selected_track", (3,)),
+    ):
+        assert client.selected_track() == 3
+
+
+def test_selected_scene_returns_index():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/view/get/selected_scene", (4,)),
+    ):
+        assert client.selected_scene() == 4
+
+
+def test_scene_name_returns_name_after_scene_index():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/scene/get/name", (0, "Verse")),
+    ):
+        assert client.scene_name(0) == "Verse"
+
+
+def test_scene_name_rejects_negative_index():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.scene_name(-1)
+
+
+def test_cue_points_returns_name_time_pairs():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/song/get/cue_points", ("Intro", 1.0, "Drop", 33.0)),
+    ):
+        assert client.cue_points() == (("Intro", 1.0), ("Drop", 33.0))
 
 
 def test_track_clips_skips_track_id_in_reply():

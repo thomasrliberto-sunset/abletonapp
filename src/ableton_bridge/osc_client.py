@@ -43,6 +43,16 @@ class AbletonOSCClient:
         self.ensure_reachable()
         self.send("/live/song/stop_playing")
 
+    def stop_all_clips(self) -> None:
+        self.ensure_reachable()
+        self.send("/live/song/stop_all_clips")
+
+    def stop_track_clips(self, track_index: int) -> None:
+        if track_index < 0:
+            raise ValueError("Track index must be zero or greater.")
+        self.ensure_reachable()
+        self.send("/live/track/stop_all_clips", int(track_index))
+
     def set_tempo(self, bpm: float) -> None:
         if bpm <= 0:
             raise ValueError("Tempo must be greater than 0 BPM.")
@@ -67,12 +77,66 @@ class AbletonOSCClient:
             raise AbletonOSCError("AbletonOSC returned no current song time.")
         return float(reply.values[0])
 
+    def get_metronome(self) -> bool:
+        reply = self.query(
+            "/live/song/get/metronome",
+            expected_address="/live/song/get/metronome",
+        )
+        if not reply.values:
+            raise AbletonOSCError("AbletonOSC returned no metronome value.")
+        return bool(reply.values[0])
+
+    def set_metronome(self, enabled: bool) -> None:
+        self.ensure_reachable()
+        self.send("/live/song/set/metronome", 1 if enabled else 0)
+
     def tracks(self) -> tuple[str, ...]:
         reply = self.query(
             "/live/song/get/track_names",
             expected_address="/live/song/get/track_names",
         )
         return tuple(str(value) for value in reply.values)
+
+    def selected_track(self) -> int:
+        reply = self.query(
+            "/live/view/get/selected_track",
+            expected_address="/live/view/get/selected_track",
+        )
+        if not reply.values:
+            raise AbletonOSCError("AbletonOSC returned no selected track index.")
+        return int(reply.values[0])
+
+    def selected_scene(self) -> int:
+        reply = self.query(
+            "/live/view/get/selected_scene",
+            expected_address="/live/view/get/selected_scene",
+        )
+        if not reply.values:
+            raise AbletonOSCError("AbletonOSC returned no selected scene index.")
+        return int(reply.values[0])
+
+    def scene_name(self, scene_index: int) -> str:
+        if scene_index < 0:
+            raise ValueError("Scene index must be zero or greater.")
+        reply = self.query(
+            "/live/scene/get/name",
+            int(scene_index),
+            expected_address="/live/scene/get/name",
+        )
+        if len(reply.values) < 2:
+            raise AbletonOSCError("AbletonOSC returned no scene name.")
+        return str(reply.values[1])
+
+    def cue_points(self) -> tuple[tuple[str, float], ...]:
+        reply = self.query(
+            "/live/song/get/cue_points",
+            expected_address="/live/song/get/cue_points",
+        )
+        values = reply.values
+        return tuple(
+            (str(values[index]), float(values[index + 1]))
+            for index in range(0, len(values) - 1, 2)
+        )
 
     def track_clips(self, track_index: int) -> tuple[str, ...]:
         if track_index < 0:

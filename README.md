@@ -44,8 +44,16 @@ ableton-bridge doctor
 ableton-bridge tempo-get
 ableton-bridge current-time
 ableton-bridge track-clips 0
+ableton-bridge selected-track
+ableton-bridge selected-scene
+ableton-bridge scene-name 0
+ableton-bridge cue-points
+ableton-bridge metronome
+ableton-bridge metronome on
 ableton-bridge play
 ableton-bridge stop
+ableton-bridge stop-all-clips
+ableton-bridge stop-track-clips 0
 ableton-bridge tempo 124
 ableton-bridge tracks
 ableton-bridge fire-clip 0 0
