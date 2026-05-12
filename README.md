@@ -1,27 +1,70 @@
-# Simple Python App Scaffold
+# ableton-bridge
 
-A small Python command-line app scaffold using the standard library.
+A small Python CLI/library for controlling Ableton Live over OSC through
+[AbletonOSC](https://github.com/ideoforms/AbletonOSC) or a compatible OSC
+remote script.
 
-## Setup
+This project does not require Max for Live and does not assume Ableton Live is
+currently running. Commands that need AbletonOSC will report a helpful error if
+the OSC endpoint is not reachable.
 
-This project uses `venv` because `uv` was not found on the local PATH.
+## Install
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+```
+
+If you prefer requirements files:
+
+```powershell
 python -m pip install -r requirements.txt
 ```
 
-## Run
+## Install AbletonOSC
 
-```powershell
-python main.py --name "Codex"
-```
+1. Download AbletonOSC from <https://github.com/ideoforms/AbletonOSC>.
+2. Unzip it and rename the folder to `AbletonOSC`.
+3. Copy the `AbletonOSC` folder into Ableton's Remote Scripts folder:
+   - Windows: `C:\Users\<you>\Documents\Ableton\User Library\Remote Scripts`
+   - macOS: `/Users/<you>/Music/Ableton/User Library/Remote Scripts`
+4. Restart Ableton Live.
+5. Open `Preferences > Link, Tempo & MIDI`.
+6. In a Control Surface dropdown, select `AbletonOSC`.
+
+AbletonOSC listens on OSC port `11000` by default and sends replies to port
+`11001`.
 
 ## CLI
 
 ```powershell
-python main.py --help
+ableton-bridge status
+ableton-bridge play
+ableton-bridge stop
+ableton-bridge tempo 124
+ableton-bridge tracks
+ableton-bridge fire-clip 0 0
 ```
 
-The CLI accepts an optional `--name` argument and prints a greeting.
+Common options:
+
+```powershell
+ableton-bridge --host 127.0.0.1 --port 11000 --reply-port 11001 status
+ableton-bridge --log-level DEBUG status
+```
+
+## Example
+
+```powershell
+python examples/test_connection.py
+```
+
+## Tests
+
+The unit tests mock OSC networking and do not require Ableton Live to be
+running.
+
+```powershell
+python -m pytest
+```
