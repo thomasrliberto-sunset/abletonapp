@@ -115,6 +115,44 @@ def test_track_arm_set_command_sets_state():
     client_class.return_value.set_track_arm.assert_called_once_with(0, False)
 
 
+def test_stop_clip_command_calls_client():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["stop-clip", "1", "2"])
+
+    assert result == 0
+    client_class.return_value.stop_clip.assert_called_once_with(1, 2)
+
+
+def test_clip_name_command_prints_name(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.clip_name.return_value = "Kick Loop"
+
+        result = cli.main(["clip-name", "0", "1"])
+
+    assert result == 0
+    assert "Clip 1 on track 0: Kick Loop" in capsys.readouterr().out
+
+
+def test_clip_color_command_prints_color(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.clip_color.return_value = 123
+
+        result = cli.main(["clip-color", "0", "1"])
+
+    assert result == 0
+    assert "Clip 1 on track 0 color: 123" in capsys.readouterr().out
+
+
+def test_clip_playing_command_prints_state(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.clip_is_playing.return_value = True
+
+        result = cli.main(["clip-playing", "0", "1"])
+
+    assert result == 0
+    assert "Clip 1 on track 0 playing: yes" in capsys.readouterr().out
+
+
 def test_selected_track_command_prints_index(capsys):
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         client_class.return_value.selected_track.return_value = 2
@@ -133,6 +171,22 @@ def test_selected_scene_command_prints_index(capsys):
 
     assert result == 0
     assert "Selected scene: 1" in capsys.readouterr().out
+
+
+def test_select_track_command_sets_index():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["select-track", "2"])
+
+    assert result == 0
+    client_class.return_value.set_selected_track.assert_called_once_with(2)
+
+
+def test_select_scene_command_sets_index():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["select-scene", "3"])
+
+    assert result == 0
+    client_class.return_value.set_selected_scene.assert_called_once_with(3)
 
 
 def test_scene_name_command_prints_name(capsys):

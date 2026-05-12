@@ -114,6 +114,16 @@ class AbletonOSCClient:
             raise AbletonOSCError("AbletonOSC returned no selected scene index.")
         return int(reply.values[0])
 
+    def set_selected_track(self, track_index: int) -> None:
+        self._validate_index(track_index, "Track index")
+        self.ensure_reachable()
+        self.send("/live/view/set/selected_track", int(track_index))
+
+    def set_selected_scene(self, scene_index: int) -> None:
+        self._validate_index(scene_index, "Scene index")
+        self.ensure_reachable()
+        self.send("/live/view/set/selected_scene", int(scene_index))
+
     def scene_name(self, scene_index: int) -> str:
         self._validate_index(scene_index, "Scene index")
         reply = self.query(
@@ -197,6 +207,21 @@ class AbletonOSCClient:
         self.ensure_reachable()
         self.send("/live/clip/fire", int(track_index), int(clip_index))
 
+    def stop_clip(self, track_index: int, clip_index: int) -> None:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(clip_index, "Clip index")
+        self.ensure_reachable()
+        self.send("/live/clip/stop", int(track_index), int(clip_index))
+
+    def clip_name(self, track_index: int, clip_index: int) -> str:
+        return str(self._clip_property("name", track_index, clip_index))
+
+    def clip_color(self, track_index: int, clip_index: int) -> int:
+        return int(self._clip_property("color", track_index, clip_index))
+
+    def clip_is_playing(self, track_index: int, clip_index: int) -> bool:
+        return bool(self._clip_property("is_playing", track_index, clip_index))
+
     def ensure_reachable(self) -> None:
         self.status()
 
@@ -266,6 +291,20 @@ class AbletonOSCClient:
         self._validate_index(track_index, "Track index")
         self.ensure_reachable()
         self.send(f"/live/track/set/{property_name}", int(track_index), 1 if enabled else 0)
+
+    def _clip_property(self, property_name: str, track_index: int, clip_index: int) -> Any:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(clip_index, "Clip index")
+        address = f"/live/clip/get/{property_name}"
+        reply = self.query(
+            address,
+            int(track_index),
+            int(clip_index),
+            expected_address=address,
+        )
+        if len(reply.values) < 3:
+            raise AbletonOSCError(f"AbletonOSC returned no clip {property_name} value.")
+        return reply.values[2]
 
     def _validate_index(self, value: int, label: str) -> None:
         if value < 0:

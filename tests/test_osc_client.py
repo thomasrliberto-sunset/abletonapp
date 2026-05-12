@@ -138,6 +138,26 @@ def test_selected_scene_returns_index():
         assert client.selected_scene() == 4
 
 
+def test_set_selected_track_sends_index():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_selected_track(2)
+
+    send.assert_called_once_with("/live/view/set/selected_track", 2)
+
+
+def test_set_selected_scene_sends_index():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_selected_scene(3)
+
+    send.assert_called_once_with("/live/view/set/selected_scene", 3)
+
+
 def test_scene_name_returns_name_after_scene_index():
     client = AbletonOSCClient()
 
@@ -285,6 +305,50 @@ def test_fire_clip_sends_clip_fire():
             client.fire_clip(1, 2)
 
     send.assert_called_once_with("/live/clip/fire", 1, 2)
+
+
+def test_stop_clip_sends_clip_stop():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.stop_clip(1, 2)
+
+    send.assert_called_once_with("/live/clip/stop", 1, 2)
+
+
+def test_clip_name_returns_name():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_clip_property", return_value="Kick Loop") as prop:
+        assert client.clip_name(0, 1) == "Kick Loop"
+
+    prop.assert_called_once_with("name", 0, 1)
+
+
+def test_clip_color_returns_int():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_clip_property", return_value=123):
+        assert client.clip_color(0, 1) == 123
+
+
+def test_clip_is_playing_returns_bool():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_clip_property", return_value=1):
+        assert client.clip_is_playing(0, 1) is True
+
+
+def test_clip_property_queries_and_returns_value_after_indexes():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/clip/get/name", (0, 1, "Kick Loop")),
+    ):
+        assert client.clip_name(0, 1) == "Kick Loop"
 
 
 def test_status_reports_missing_reply():

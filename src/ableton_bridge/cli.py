@@ -72,6 +72,25 @@ def build_parser() -> argparse.ArgumentParser:
     fire_parser.add_argument("track_index", type=int, help="Zero-based track index.")
     fire_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
 
+    stop_clip_parser = subparsers.add_parser("stop-clip", help="Stop a session clip.")
+    stop_clip_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    stop_clip_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
+
+    clip_name_parser = subparsers.add_parser("clip-name", help="Print a clip name.")
+    clip_name_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    clip_name_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
+
+    clip_color_parser = subparsers.add_parser("clip-color", help="Print a clip color value.")
+    clip_color_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    clip_color_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
+
+    clip_playing_parser = subparsers.add_parser(
+        "clip-playing",
+        help="Print whether a clip is playing.",
+    )
+    clip_playing_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    clip_playing_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
+
     clips_parser = subparsers.add_parser("track-clips", help="List clip names on a track.")
     clips_parser.add_argument("track_index", type=int, help="Zero-based track index.")
 
@@ -111,6 +130,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     scene_name_parser = subparsers.add_parser("scene-name", help="Print a scene name.")
     scene_name_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    set_selected_track_parser = subparsers.add_parser(
+        "select-track",
+        help="Set the selected track.",
+    )
+    set_selected_track_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
+    set_selected_scene_parser = subparsers.add_parser(
+        "select-scene",
+        help="Set the selected scene.",
+    )
+    set_selected_scene_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
 
     return parser
 
@@ -171,6 +202,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Selected track: {client.selected_track()}")
         elif args.command == "selected-scene":
             print(f"Selected scene: {client.selected_scene()}")
+        elif args.command == "select-track":
+            client.set_selected_track(args.track_index)
+            print(f"Selected track set to {args.track_index}.")
+        elif args.command == "select-scene":
+            client.set_selected_scene(args.scene_index)
+            print(f"Selected scene set to {args.scene_index}.")
         elif args.command == "scene-name":
             print(f"Scene {args.scene_index}: {client.scene_name(args.scene_index)}")
         elif args.command == "cue-points":
@@ -209,6 +246,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "fire-clip":
             client.fire_clip(args.track_index, args.clip_index)
             print(f"Fired clip {args.clip_index} on track {args.track_index}.")
+        elif args.command == "stop-clip":
+            client.stop_clip(args.track_index, args.clip_index)
+            print(f"Stopped clip {args.clip_index} on track {args.track_index}.")
+        elif args.command == "clip-name":
+            print(
+                f"Clip {args.clip_index} on track {args.track_index}: "
+                f"{client.clip_name(args.track_index, args.clip_index)}"
+            )
+        elif args.command == "clip-color":
+            print(
+                f"Clip {args.clip_index} on track {args.track_index} color: "
+                f"{client.clip_color(args.track_index, args.clip_index)}"
+            )
+        elif args.command == "clip-playing":
+            state = "yes" if client.clip_is_playing(args.track_index, args.clip_index) else "no"
+            print(f"Clip {args.clip_index} on track {args.track_index} playing: {state}")
         elif args.command == "track-clips":
             clips = client.track_clips(args.track_index)
             if clips:

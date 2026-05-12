@@ -46,6 +46,8 @@ ableton-bridge current-time
 ableton-bridge track-clips 0
 ableton-bridge selected-track
 ableton-bridge selected-scene
+ableton-bridge select-track 0
+ableton-bridge select-scene 0
 ableton-bridge scene-name 0
 ableton-bridge cue-points
 ableton-bridge metronome
@@ -65,6 +67,10 @@ ableton-bridge track-mute 0 on
 ableton-bridge track-solo 0 off
 ableton-bridge track-arm 0 on
 ableton-bridge fire-clip 0 0
+ableton-bridge stop-clip 0 0
+ableton-bridge clip-name 0 0
+ableton-bridge clip-color 0 0
+ableton-bridge clip-playing 0 0
 ```
 
 Common options:
