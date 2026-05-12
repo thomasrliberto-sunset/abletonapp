@@ -44,6 +44,7 @@ ableton-bridge doctor
 ableton-bridge tempo-get
 ableton-bridge current-time
 ableton-bridge track-clips 0
+ableton-bridge track-devices 0
 ableton-bridge selected-track
 ableton-bridge selected-scene
 ableton-bridge select-track 0
@@ -71,6 +72,12 @@ ableton-bridge stop-clip 0 0
 ableton-bridge clip-name 0 0
 ableton-bridge clip-color 0 0
 ableton-bridge clip-playing 0 0
+ableton-bridge device-name 0 0
+ableton-bridge device-type 0 0
+ableton-bridge device-params 0 0
+ableton-bridge device-param 0 0 1
+ableton-bridge device-param 0 0 1 0.5
+ableton-bridge device-param-text 0 0 1
 ```
 
 Common options:

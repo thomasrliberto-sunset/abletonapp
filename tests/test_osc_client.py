@@ -205,6 +205,17 @@ def test_track_clips_rejects_negative_index():
         client.track_clips(-1)
 
 
+def test_track_devices_skips_track_id_in_reply():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/track/get/devices/name", (0, "Operator", "Echo")),
+    ):
+        assert client.track_devices(0) == ("Operator", "Echo")
+
+
 def test_track_name_returns_name():
     client = AbletonOSCClient()
 
@@ -349,6 +360,84 @@ def test_clip_property_queries_and_returns_value_after_indexes():
         return_value=OSCReply("/live/clip/get/name", (0, 1, "Kick Loop")),
     ):
         assert client.clip_name(0, 1) == "Kick Loop"
+
+
+def test_device_name_returns_name():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_device_property", return_value="Operator") as prop:
+        assert client.device_name(0, 1) == "Operator"
+
+    prop.assert_called_once_with("name", 0, 1)
+
+
+def test_device_type_returns_type():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_device_property", return_value="instrument"):
+        assert client.device_type(0, 1) == "instrument"
+
+
+def test_device_parameters_skips_track_and_device_ids():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply(
+            "/live/device/get/parameters/name",
+            (0, 1, "Device On", "Frequency"),
+        ),
+    ):
+        assert client.device_parameters(0, 1) == ("Device On", "Frequency")
+
+
+def test_device_parameter_value_returns_float():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_device_parameter_property", return_value=0.5) as prop:
+        assert client.device_parameter_value(0, 1, 2) == 0.5
+
+    prop.assert_called_once_with("value", 0, 1, 2)
+
+
+def test_device_parameter_value_string_returns_text():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_device_parameter_property", return_value="2500 Hz"):
+        assert client.device_parameter_value_string(0, 1, 2) == "2500 Hz"
+
+
+def test_set_device_parameter_value_sends_value():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_device_parameter_value(0, 1, 2, 0.75)
+
+    send.assert_called_once_with("/live/device/set/parameter/value", 0, 1, 2, 0.75)
+
+
+def test_device_property_queries_and_returns_value_after_indexes():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/device/get/name", (0, 1, "Operator")),
+    ):
+        assert client.device_name(0, 1) == "Operator"
+
+
+def test_device_parameter_property_queries_and_returns_value_after_indexes():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/device/get/parameter/value", (0, 1, 2, 0.5)),
+    ):
+        assert client.device_parameter_value(0, 1, 2) == 0.5
 
 
 def test_status_reports_missing_reply():

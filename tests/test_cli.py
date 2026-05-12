@@ -53,6 +53,17 @@ def test_track_clips_command_prints_clip_names(capsys):
     client_class.return_value.track_clips.assert_called_once_with(0)
 
 
+def test_track_devices_command_prints_device_names(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.track_devices.return_value = ("Operator", "Echo")
+
+        result = cli.main(["track-devices", "0"])
+
+    assert result == 0
+    assert "0: Operator" in capsys.readouterr().out
+    client_class.return_value.track_devices.assert_called_once_with(0)
+
+
 def test_track_name_command_prints_name(capsys):
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         client_class.return_value.track_name.return_value = "Bass"
@@ -151,6 +162,54 @@ def test_clip_playing_command_prints_state(capsys):
 
     assert result == 0
     assert "Clip 1 on track 0 playing: yes" in capsys.readouterr().out
+
+
+def test_device_name_command_prints_name(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.device_name.return_value = "Operator"
+
+        result = cli.main(["device-name", "0", "1"])
+
+    assert result == 0
+    assert "Device 1 on track 0: Operator" in capsys.readouterr().out
+
+
+def test_device_params_command_prints_parameter_names(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.device_parameters.return_value = ("Device On", "Frequency")
+
+        result = cli.main(["device-params", "0", "1"])
+
+    assert result == 0
+    assert "1: Frequency" in capsys.readouterr().out
+
+
+def test_device_param_get_command_prints_value(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.device_parameter_value.return_value = 0.5
+
+        result = cli.main(["device-param", "0", "1", "2"])
+
+    assert result == 0
+    assert "Parameter 2 on device 1 track 0: 0.5" in capsys.readouterr().out
+
+
+def test_device_param_set_command_sets_value():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["device-param", "0", "1", "2", "0.75"])
+
+    assert result == 0
+    client_class.return_value.set_device_parameter_value.assert_called_once_with(0, 1, 2, 0.75)
+
+
+def test_device_param_text_command_prints_value_string(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.device_parameter_value_string.return_value = "2500 Hz"
+
+        result = cli.main(["device-param-text", "0", "1", "2"])
+
+    assert result == 0
+    assert "2500 Hz" in capsys.readouterr().out
 
 
 def test_selected_track_command_prints_index(capsys):

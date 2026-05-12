@@ -94,6 +94,9 @@ def build_parser() -> argparse.ArgumentParser:
     clips_parser = subparsers.add_parser("track-clips", help="List clip names on a track.")
     clips_parser.add_argument("track_index", type=int, help="Zero-based track index.")
 
+    devices_parser = subparsers.add_parser("track-devices", help="List device names on a track.")
+    devices_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
     track_name_parser = subparsers.add_parser("track-name", help="Print a track name.")
     track_name_parser.add_argument("track_index", type=int, help="Zero-based track index.")
 
@@ -142,6 +145,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set the selected scene.",
     )
     set_selected_scene_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    device_name_parser = subparsers.add_parser("device-name", help="Print a device name.")
+    device_name_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    device_name_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+
+    device_type_parser = subparsers.add_parser("device-type", help="Print a device type.")
+    device_type_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    device_type_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+
+    device_params_parser = subparsers.add_parser(
+        "device-params",
+        help="List device parameter names.",
+    )
+    device_params_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    device_params_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+
+    param_value_parser = subparsers.add_parser(
+        "device-param",
+        help="Get or set a device parameter value.",
+    )
+    param_value_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    param_value_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+    param_value_parser.add_argument("parameter_index", type=int, help="Zero-based parameter index.")
+    param_value_parser.add_argument("value", nargs="?", type=float, help="Optional value to set.")
+
+    param_string_parser = subparsers.add_parser(
+        "device-param-text",
+        help="Print a readable device parameter value.",
+    )
+    param_string_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    param_string_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+    param_string_parser.add_argument("parameter_index", type=int, help="Zero-based parameter index.")
 
     return parser
 
@@ -269,6 +304,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"{index}: {name}")
             else:
                 print(f"No clips returned for track {args.track_index}.")
+        elif args.command == "track-devices":
+            devices = client.track_devices(args.track_index)
+            if devices:
+                for index, name in enumerate(devices):
+                    print(f"{index}: {name}")
+            else:
+                print(f"No devices returned for track {args.track_index}.")
         elif args.command == "track-name":
             print(f"Track {args.track_index}: {client.track_name(args.track_index)}")
         elif args.command == "track-color":
@@ -309,6 +351,58 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "stop-track-clips":
             client.stop_track_clips(args.track_index)
             print(f"Stopped all clips on track {args.track_index}.")
+        elif args.command == "device-name":
+            print(
+                f"Device {args.device_index} on track {args.track_index}: "
+                f"{client.device_name(args.track_index, args.device_index)}"
+            )
+        elif args.command == "device-type":
+            print(
+                f"Device {args.device_index} on track {args.track_index} type: "
+                f"{client.device_type(args.track_index, args.device_index)}"
+            )
+        elif args.command == "device-params":
+            parameters = client.device_parameters(args.track_index, args.device_index)
+            if parameters:
+                for index, name in enumerate(parameters):
+                    print(f"{index}: {name}")
+            else:
+                print(
+                    "No parameters returned for "
+                    f"device {args.device_index} on track {args.track_index}."
+                )
+        elif args.command == "device-param":
+            if args.value is None:
+                value = client.device_parameter_value(
+                    args.track_index,
+                    args.device_index,
+                    args.parameter_index,
+                )
+                print(
+                    f"Parameter {args.parameter_index} on device {args.device_index} "
+                    f"track {args.track_index}: {value:g}"
+                )
+            else:
+                client.set_device_parameter_value(
+                    args.track_index,
+                    args.device_index,
+                    args.parameter_index,
+                    args.value,
+                )
+                print(
+                    f"Parameter {args.parameter_index} on device {args.device_index} "
+                    f"track {args.track_index} set to {args.value:g}."
+                )
+        elif args.command == "device-param-text":
+            value = client.device_parameter_value_string(
+                args.track_index,
+                args.device_index,
+                args.parameter_index,
+            )
+            print(
+                f"Parameter {args.parameter_index} on device {args.device_index} "
+                f"track {args.track_index}: {value}"
+            )
     except (AbletonOSCError, OSError, ValueError) as exc:
         logging.error("%s", exc)
         return 1

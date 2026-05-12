@@ -157,6 +157,17 @@ class AbletonOSCClient:
             return ()
         return tuple(str(value) for value in reply.values[1:])
 
+    def track_devices(self, track_index: int) -> tuple[str, ...]:
+        self._validate_index(track_index, "Track index")
+        reply = self.query(
+            "/live/track/get/devices/name",
+            int(track_index),
+            expected_address="/live/track/get/devices/name",
+        )
+        if not reply.values:
+            return ()
+        return tuple(str(value) for value in reply.values[1:])
+
     def track_name(self, track_index: int) -> str:
         return str(self._track_property("name", track_index))
 
@@ -221,6 +232,76 @@ class AbletonOSCClient:
 
     def clip_is_playing(self, track_index: int, clip_index: int) -> bool:
         return bool(self._clip_property("is_playing", track_index, clip_index))
+
+    def device_name(self, track_index: int, device_index: int) -> str:
+        return str(self._device_property("name", track_index, device_index))
+
+    def device_type(self, track_index: int, device_index: int) -> str:
+        return str(self._device_property("type", track_index, device_index))
+
+    def device_parameters(self, track_index: int, device_index: int) -> tuple[str, ...]:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(device_index, "Device index")
+        reply = self.query(
+            "/live/device/get/parameters/name",
+            int(track_index),
+            int(device_index),
+            expected_address="/live/device/get/parameters/name",
+        )
+        if len(reply.values) <= 2:
+            return ()
+        return tuple(str(value) for value in reply.values[2:])
+
+    def device_parameter_value(
+        self,
+        track_index: int,
+        device_index: int,
+        parameter_index: int,
+    ) -> float:
+        self._validate_index(parameter_index, "Parameter index")
+        return float(
+            self._device_parameter_property(
+                "value",
+                track_index,
+                device_index,
+                parameter_index,
+            )
+        )
+
+    def device_parameter_value_string(
+        self,
+        track_index: int,
+        device_index: int,
+        parameter_index: int,
+    ) -> str:
+        self._validate_index(parameter_index, "Parameter index")
+        return str(
+            self._device_parameter_property(
+                "value_string",
+                track_index,
+                device_index,
+                parameter_index,
+            )
+        )
+
+    def set_device_parameter_value(
+        self,
+        track_index: int,
+        device_index: int,
+        parameter_index: int,
+        value: float,
+    ) -> None:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(device_index, "Device index")
+        self._validate_index(parameter_index, "Parameter index")
+        self.ensure_reachable()
+        self.send(
+            "/live/device/set/parameter/value",
+            int(track_index),
+            int(device_index),
+            int(parameter_index),
+            float(value),
+        )
 
     def ensure_reachable(self) -> None:
         self.status()
@@ -305,6 +386,41 @@ class AbletonOSCClient:
         if len(reply.values) < 3:
             raise AbletonOSCError(f"AbletonOSC returned no clip {property_name} value.")
         return reply.values[2]
+
+    def _device_property(self, property_name: str, track_index: int, device_index: int) -> Any:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(device_index, "Device index")
+        address = f"/live/device/get/{property_name}"
+        reply = self.query(
+            address,
+            int(track_index),
+            int(device_index),
+            expected_address=address,
+        )
+        if len(reply.values) < 3:
+            raise AbletonOSCError(f"AbletonOSC returned no device {property_name} value.")
+        return reply.values[2]
+
+    def _device_parameter_property(
+        self,
+        property_name: str,
+        track_index: int,
+        device_index: int,
+        parameter_index: int,
+    ) -> Any:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(device_index, "Device index")
+        address = f"/live/device/get/parameter/{property_name}"
+        reply = self.query(
+            address,
+            int(track_index),
+            int(device_index),
+            int(parameter_index),
+            expected_address=address,
+        )
+        if len(reply.values) < 4:
+            raise AbletonOSCError(f"AbletonOSC returned no device parameter {property_name}.")
+        return reply.values[3]
 
     def _validate_index(self, value: int, label: str) -> None:
         if value < 0:
