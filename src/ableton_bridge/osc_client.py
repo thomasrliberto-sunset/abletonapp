@@ -12,6 +12,7 @@ from pythonosc.udp_client import SimpleUDPClient
 
 from ableton_bridge.config import AbletonBridgeConfig
 from ableton_bridge.errors import AbletonOSCError
+from ableton_bridge.models import AbletonSnapshot, SongSummary, ViewSummary
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,35 +60,116 @@ class AbletonOSCClient:
         self.send("/live/song/set/tempo", float(bpm))
 
     def get_tempo(self) -> float:
-        reply = self.query(
-            "/live/song/get/tempo",
-            expected_address="/live/song/get/tempo",
-        )
-        if not reply.values:
-            raise AbletonOSCError("AbletonOSC returned no tempo value.")
-        return float(reply.values[0])
+        return float(self._song_property("tempo"))
 
     def current_time(self) -> float:
-        reply = self.query(
-            "/live/song/get/current_song_time",
-            expected_address="/live/song/get/current_song_time",
+        return float(self._song_property("current_song_time"))
+
+    def set_current_time(self, beats: float) -> None:
+        if beats < 0:
+            raise ValueError("Current song time must be zero or greater.")
+        self.ensure_reachable()
+        self.send("/live/song/set/current_song_time", float(beats))
+
+    def is_playing(self) -> bool:
+        return bool(self._song_property("is_playing"))
+
+    def get_loop(self) -> bool:
+        return bool(self._song_property("loop"))
+
+    def set_loop(self, enabled: bool) -> None:
+        self._set_song_bool_property("loop", enabled)
+
+    def loop_start(self) -> float:
+        return float(self._song_property("loop_start"))
+
+    def set_loop_start(self, beats: float) -> None:
+        if beats < 0:
+            raise ValueError("Loop start must be zero or greater.")
+        self.ensure_reachable()
+        self.send("/live/song/set/loop_start", float(beats))
+
+    def loop_length(self) -> float:
+        return float(self._song_property("loop_length"))
+
+    def set_loop_length(self, beats: float) -> None:
+        if beats <= 0:
+            raise ValueError("Loop length must be greater than 0.")
+        self.ensure_reachable()
+        self.send("/live/song/set/loop_length", float(beats))
+
+    def song_length(self) -> float:
+        return float(self._song_property("song_length"))
+
+    def time_signature(self) -> tuple[int, int]:
+        return int(self._song_property("signature_numerator")), int(
+            self._song_property("signature_denominator")
         )
-        if not reply.values:
-            raise AbletonOSCError("AbletonOSC returned no current song time.")
-        return float(reply.values[0])
+
+    def set_time_signature(self, numerator: int, denominator: int) -> None:
+        if numerator <= 0 or denominator <= 0:
+            raise ValueError("Time signature values must be greater than 0.")
+        self.ensure_reachable()
+        self.send("/live/song/set/signature_numerator", int(numerator))
+        self.send("/live/song/set/signature_denominator", int(denominator))
 
     def get_metronome(self) -> bool:
-        reply = self.query(
-            "/live/song/get/metronome",
-            expected_address="/live/song/get/metronome",
-        )
-        if not reply.values:
-            raise AbletonOSCError("AbletonOSC returned no metronome value.")
-        return bool(reply.values[0])
+        return bool(self._song_property("metronome"))
 
     def set_metronome(self, enabled: bool) -> None:
-        self.ensure_reachable()
-        self.send("/live/song/set/metronome", 1 if enabled else 0)
+        self._set_song_bool_property("metronome", enabled)
+
+    def get_record_mode(self) -> bool:
+        return bool(self._song_property("record_mode"))
+
+    def set_record_mode(self, enabled: bool) -> None:
+        self._set_song_bool_property("record_mode", enabled)
+
+    def get_session_record(self) -> bool:
+        return bool(self._song_property("session_record"))
+
+    def set_session_record(self, enabled: bool) -> None:
+        self._set_song_bool_property("session_record", enabled)
+
+    def get_punch_in(self) -> bool:
+        return bool(self._song_property("punch_in"))
+
+    def set_punch_in(self, enabled: bool) -> None:
+        self._set_song_bool_property("punch_in", enabled)
+
+    def get_punch_out(self) -> bool:
+        return bool(self._song_property("punch_out"))
+
+    def set_punch_out(self, enabled: bool) -> None:
+        self._set_song_bool_property("punch_out", enabled)
+
+    def num_tracks(self) -> int:
+        return int(self._song_property("num_tracks"))
+
+    def num_scenes(self) -> int:
+        return int(self._song_property("num_scenes"))
+
+    def song_summary(self) -> SongSummary:
+        numerator, denominator = self.time_signature()
+        return SongSummary(
+            tempo=self.get_tempo(),
+            current_time=self.current_time(),
+            is_playing=self.is_playing(),
+            metronome=self.get_metronome(),
+            loop=self.get_loop(),
+            song_length=self.song_length(),
+            signature_numerator=numerator,
+            signature_denominator=denominator,
+            num_tracks=self.num_tracks(),
+            num_scenes=self.num_scenes(),
+        )
+
+    def snapshot(self) -> AbletonSnapshot:
+        return AbletonSnapshot(
+            song=self.song_summary(),
+            view=self.view_summary(),
+            tracks=self.tracks(),
+        )
 
     def tracks(self) -> tuple[str, ...]:
         reply = self.query(
@@ -114,6 +196,32 @@ class AbletonOSCClient:
             raise AbletonOSCError("AbletonOSC returned no selected scene index.")
         return int(reply.values[0])
 
+    def selected_clip(self) -> tuple[int, int]:
+        reply = self.query(
+            "/live/view/get/selected_clip",
+            expected_address="/live/view/get/selected_clip",
+        )
+        if len(reply.values) < 2:
+            raise AbletonOSCError("AbletonOSC returned no selected clip indexes.")
+        return int(reply.values[0]), int(reply.values[1])
+
+    def selected_device(self) -> tuple[int, int]:
+        reply = self.query(
+            "/live/view/get/selected_device",
+            expected_address="/live/view/get/selected_device",
+        )
+        if len(reply.values) < 2:
+            raise AbletonOSCError("AbletonOSC returned no selected device indexes.")
+        return int(reply.values[0]), int(reply.values[1])
+
+    def view_summary(self) -> ViewSummary:
+        return ViewSummary(
+            selected_track=self.selected_track(),
+            selected_scene=self.selected_scene(),
+            selected_clip=self.selected_clip(),
+            selected_device=self.selected_device(),
+        )
+
     def set_selected_track(self, track_index: int) -> None:
         self._validate_index(track_index, "Track index")
         self.ensure_reachable()
@@ -123,6 +231,18 @@ class AbletonOSCClient:
         self._validate_index(scene_index, "Scene index")
         self.ensure_reachable()
         self.send("/live/view/set/selected_scene", int(scene_index))
+
+    def set_selected_clip(self, track_index: int, scene_index: int) -> None:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(scene_index, "Scene index")
+        self.ensure_reachable()
+        self.send("/live/view/set/selected_clip", int(track_index), int(scene_index))
+
+    def set_selected_device(self, track_index: int, device_index: int) -> None:
+        self._validate_index(track_index, "Track index")
+        self._validate_index(device_index, "Device index")
+        self.ensure_reachable()
+        self.send("/live/view/set/selected_device", int(track_index), int(device_index))
 
     def scene_name(self, scene_index: int) -> str:
         return str(self._scene_property("name", scene_index))
@@ -396,6 +516,17 @@ class AbletonOSCClient:
             "AbletonOSC is selected as a Control Surface, and the host/port "
             f"({self.config.host}:{self.config.port}) are correct."
         )
+
+    def _song_property(self, property_name: str) -> Any:
+        address = f"/live/song/get/{property_name}"
+        reply = self.query(address, expected_address=address)
+        if not reply.values:
+            raise AbletonOSCError(f"AbletonOSC returned no song {property_name} value.")
+        return reply.values[0]
+
+    def _set_song_bool_property(self, property_name: str, enabled: bool) -> None:
+        self.ensure_reachable()
+        self.send(f"/live/song/set/{property_name}", 1 if enabled else 0)
 
     def _track_property(self, property_name: str, track_index: int) -> Any:
         self._validate_index(track_index, "Track index")

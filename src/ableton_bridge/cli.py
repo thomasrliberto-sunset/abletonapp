@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+from dataclasses import asdict
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -49,8 +51,16 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("doctor", help="Check local setup and AbletonOSC reachability.")
     subparsers.add_parser("tempo-get", help="Print the current song tempo.")
     subparsers.add_parser("current-time", help="Print the current song time in beats.")
+    subparsers.add_parser("is-playing", help="Print whether the song is playing.")
+    subparsers.add_parser("song-length", help="Print the song length in beats.")
+    subparsers.add_parser("signature", help="Print the song time signature.")
+    subparsers.add_parser("song-summary", help="Print a JSON song summary.")
+    subparsers.add_parser("view-summary", help="Print a JSON view summary.")
+    subparsers.add_parser("snapshot", help="Print a JSON song/view/track snapshot.")
     subparsers.add_parser("selected-track", help="Print the selected track index.")
     subparsers.add_parser("selected-scene", help="Print the selected scene index.")
+    subparsers.add_parser("selected-clip", help="Print the selected clip indexes.")
+    subparsers.add_parser("selected-device", help="Print the selected device indexes.")
     subparsers.add_parser("cue-points", help="List cue point names and beat positions.")
     subparsers.add_parser("play", help="Start playback.")
     subparsers.add_parser("stop", help="Stop playback.")
@@ -64,6 +74,34 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("on", "off"),
         help="Optional state to set.",
     )
+
+    for command, help_text in (
+        ("loop", "Get or set song loop state."),
+        ("record-mode", "Get or set arrangement record mode."),
+        ("session-record", "Get or set session record state."),
+        ("punch-in", "Get or set punch-in state."),
+        ("punch-out", "Get or set punch-out state."),
+    ):
+        song_bool_parser = subparsers.add_parser(command, help=help_text)
+        song_bool_parser.add_argument(
+            "state",
+            nargs="?",
+            choices=("on", "off"),
+            help="Optional state to set.",
+        )
+
+    current_time_parser = subparsers.add_parser("set-current-time", help="Set current song time.")
+    current_time_parser.add_argument("beats", type=float, help="Song time in beats.")
+
+    loop_start_parser = subparsers.add_parser("loop-start", help="Get or set loop start.")
+    loop_start_parser.add_argument("beats", nargs="?", type=float, help="Optional start in beats.")
+
+    loop_length_parser = subparsers.add_parser("loop-length", help="Get or set loop length.")
+    loop_length_parser.add_argument("beats", nargs="?", type=float, help="Optional length in beats.")
+
+    signature_parser = subparsers.add_parser("set-signature", help="Set song time signature.")
+    signature_parser.add_argument("numerator", type=int, help="Time signature numerator.")
+    signature_parser.add_argument("denominator", type=int, help="Time signature denominator.")
 
     tempo_parser = subparsers.add_parser("tempo", help="Set the song tempo.")
     tempo_parser.add_argument("bpm", type=float, help="Tempo in beats per minute.")
@@ -203,6 +241,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     set_selected_scene_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
 
+    set_selected_clip_parser = subparsers.add_parser(
+        "select-clip",
+        help="Set the selected clip.",
+    )
+    set_selected_clip_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    set_selected_clip_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    set_selected_device_parser = subparsers.add_parser(
+        "select-device",
+        help="Set the selected device.",
+    )
+    set_selected_device_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    set_selected_device_parser.add_argument("device_index", type=int, help="Zero-based device index.")
+
     device_name_parser = subparsers.add_parser("device-name", help="Print a device name.")
     device_name_parser.add_argument("track_index", type=int, help="Zero-based track index.")
     device_name_parser.add_argument("device_index", type=int, help="Zero-based device index.")
@@ -268,6 +320,10 @@ def run_doctor(client: AbletonOSCClient) -> int:
     return exit_code
 
 
+def print_json(value: object) -> None:
+    print(json.dumps(asdict(value), indent=2))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -290,16 +346,47 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Tempo: {client.get_tempo():g} BPM")
         elif args.command == "current-time":
             print(f"Current time: {client.current_time():g} beats")
+        elif args.command == "set-current-time":
+            client.set_current_time(args.beats)
+            print(f"Current time set to {args.beats:g} beats.")
+        elif args.command == "is-playing":
+            print(f"Playing: {'yes' if client.is_playing() else 'no'}")
+        elif args.command == "song-length":
+            print(f"Song length: {client.song_length():g} beats")
+        elif args.command == "signature":
+            numerator, denominator = client.time_signature()
+            print(f"Time signature: {numerator}/{denominator}")
+        elif args.command == "set-signature":
+            client.set_time_signature(args.numerator, args.denominator)
+            print(f"Time signature set to {args.numerator}/{args.denominator}.")
+        elif args.command == "song-summary":
+            print_json(client.song_summary())
+        elif args.command == "view-summary":
+            print_json(client.view_summary())
+        elif args.command == "snapshot":
+            print_json(client.snapshot())
         elif args.command == "selected-track":
             print(f"Selected track: {client.selected_track()}")
         elif args.command == "selected-scene":
             print(f"Selected scene: {client.selected_scene()}")
+        elif args.command == "selected-clip":
+            track, scene = client.selected_clip()
+            print(f"Selected clip: track {track}, scene {scene}")
+        elif args.command == "selected-device":
+            track, device = client.selected_device()
+            print(f"Selected device: track {track}, device {device}")
         elif args.command == "select-track":
             client.set_selected_track(args.track_index)
             print(f"Selected track set to {args.track_index}.")
         elif args.command == "select-scene":
             client.set_selected_scene(args.scene_index)
             print(f"Selected scene set to {args.scene_index}.")
+        elif args.command == "select-clip":
+            client.set_selected_clip(args.track_index, args.scene_index)
+            print(f"Selected clip set to track {args.track_index}, scene {args.scene_index}.")
+        elif args.command == "select-device":
+            client.set_selected_device(args.track_index, args.device_index)
+            print(f"Selected device set to track {args.track_index}, device {args.device_index}.")
         elif args.command == "scene-name":
             print(f"Scene {args.scene_index}: {client.scene_name(args.scene_index)}")
         elif args.command == "scene-color":
@@ -354,6 +441,53 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 client.set_metronome(args.state == "on")
                 print(f"Metronome set to {args.state}.")
+        elif args.command == "loop":
+            if args.state is None:
+                state = "on" if client.get_loop() else "off"
+                print(f"Loop: {state}")
+            else:
+                client.set_loop(args.state == "on")
+                print(f"Loop set to {args.state}.")
+        elif args.command == "loop-start":
+            if args.beats is None:
+                print(f"Loop start: {client.loop_start():g} beats")
+            else:
+                client.set_loop_start(args.beats)
+                print(f"Loop start set to {args.beats:g} beats.")
+        elif args.command == "loop-length":
+            if args.beats is None:
+                print(f"Loop length: {client.loop_length():g} beats")
+            else:
+                client.set_loop_length(args.beats)
+                print(f"Loop length set to {args.beats:g} beats.")
+        elif args.command == "record-mode":
+            if args.state is None:
+                state = "on" if client.get_record_mode() else "off"
+                print(f"Record mode: {state}")
+            else:
+                client.set_record_mode(args.state == "on")
+                print(f"Record mode set to {args.state}.")
+        elif args.command == "session-record":
+            if args.state is None:
+                state = "on" if client.get_session_record() else "off"
+                print(f"Session record: {state}")
+            else:
+                client.set_session_record(args.state == "on")
+                print(f"Session record set to {args.state}.")
+        elif args.command == "punch-in":
+            if args.state is None:
+                state = "on" if client.get_punch_in() else "off"
+                print(f"Punch in: {state}")
+            else:
+                client.set_punch_in(args.state == "on")
+                print(f"Punch in set to {args.state}.")
+        elif args.command == "punch-out":
+            if args.state is None:
+                state = "on" if client.get_punch_out() else "off"
+                print(f"Punch out: {state}")
+            else:
+                client.set_punch_out(args.state == "on")
+                print(f"Punch out set to {args.state}.")
         elif args.command == "play":
             client.play()
             print("Playback started.")

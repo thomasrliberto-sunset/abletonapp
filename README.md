@@ -43,12 +43,24 @@ ableton-bridge status
 ableton-bridge doctor
 ableton-bridge tempo-get
 ableton-bridge current-time
+ableton-bridge set-current-time 16
+ableton-bridge is-playing
+ableton-bridge song-length
+ableton-bridge signature
+ableton-bridge set-signature 7 8
+ableton-bridge song-summary
+ableton-bridge view-summary
+ableton-bridge snapshot
 ableton-bridge track-clips 0
 ableton-bridge track-devices 0
 ableton-bridge selected-track
 ableton-bridge selected-scene
+ableton-bridge selected-clip
+ableton-bridge selected-device
 ableton-bridge select-track 0
 ableton-bridge select-scene 0
+ableton-bridge select-clip 0 0
+ableton-bridge select-device 0 0
 ableton-bridge scene-name 0
 ableton-bridge scene-color 0
 ableton-bridge scene-state 0
@@ -63,6 +75,16 @@ ableton-bridge fire-selected-scene
 ableton-bridge cue-points
 ableton-bridge metronome
 ableton-bridge metronome on
+ableton-bridge loop
+ableton-bridge loop on
+ableton-bridge loop-start
+ableton-bridge loop-start 1
+ableton-bridge loop-length
+ableton-bridge loop-length 16
+ableton-bridge record-mode on
+ableton-bridge session-record off
+ableton-bridge punch-in on
+ableton-bridge punch-out off
 ableton-bridge play
 ableton-bridge stop
 ableton-bridge stop-all-clips

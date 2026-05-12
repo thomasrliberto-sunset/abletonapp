@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from ableton_bridge import cli
 from ableton_bridge.errors import AbletonOSCError
+from ableton_bridge.models import AbletonSnapshot, SongSummary, ViewSummary
 
 
 def test_status_command_prints_status(capsys):
@@ -40,6 +41,85 @@ def test_current_time_command_prints_current_time(capsys):
 
     assert result == 0
     assert "Current time: 16 beats" in capsys.readouterr().out
+
+
+def test_set_current_time_command_sets_beats():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["set-current-time", "32"])
+
+    assert result == 0
+    client_class.return_value.set_current_time.assert_called_once_with(32.0)
+
+
+def test_is_playing_command_prints_state(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.is_playing.return_value = True
+
+        result = cli.main(["is-playing"])
+
+    assert result == 0
+    assert "Playing: yes" in capsys.readouterr().out
+
+
+def test_signature_command_prints_signature(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.time_signature.return_value = (7, 8)
+
+        result = cli.main(["signature"])
+
+    assert result == 0
+    assert "Time signature: 7/8" in capsys.readouterr().out
+
+
+def test_song_summary_command_prints_json(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.song_summary.return_value = SongSummary(
+            tempo=120.0,
+            current_time=1.0,
+            is_playing=True,
+            metronome=False,
+            loop=True,
+            song_length=64.0,
+            signature_numerator=4,
+            signature_denominator=4,
+            num_tracks=2,
+            num_scenes=3,
+        )
+
+        result = cli.main(["song-summary"])
+
+    assert result == 0
+    assert '"tempo": 120.0' in capsys.readouterr().out
+
+
+def test_snapshot_command_prints_json(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.snapshot.return_value = AbletonSnapshot(
+            song=SongSummary(
+                tempo=120.0,
+                current_time=1.0,
+                is_playing=True,
+                metronome=False,
+                loop=True,
+                song_length=64.0,
+                signature_numerator=4,
+                signature_denominator=4,
+                num_tracks=2,
+                num_scenes=3,
+            ),
+            view=ViewSummary(
+                selected_track=0,
+                selected_scene=1,
+                selected_clip=(0, 1),
+                selected_device=(0, 0),
+            ),
+            tracks=("Drums", "Bass"),
+        )
+
+        result = cli.main(["snapshot"])
+
+    assert result == 0
+    assert '"tracks": [' in capsys.readouterr().out
 
 
 def test_track_clips_command_prints_clip_names(capsys):
@@ -232,6 +312,26 @@ def test_selected_scene_command_prints_index(capsys):
     assert "Selected scene: 1" in capsys.readouterr().out
 
 
+def test_selected_clip_command_prints_indexes(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.selected_clip.return_value = (0, 2)
+
+        result = cli.main(["selected-clip"])
+
+    assert result == 0
+    assert "Selected clip: track 0, scene 2" in capsys.readouterr().out
+
+
+def test_selected_device_command_prints_indexes(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.selected_device.return_value = (1, 3)
+
+        result = cli.main(["selected-device"])
+
+    assert result == 0
+    assert "Selected device: track 1, device 3" in capsys.readouterr().out
+
+
 def test_select_track_command_sets_index():
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         result = cli.main(["select-track", "2"])
@@ -246,6 +346,22 @@ def test_select_scene_command_sets_index():
 
     assert result == 0
     client_class.return_value.set_selected_scene.assert_called_once_with(3)
+
+
+def test_select_clip_command_sets_indexes():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["select-clip", "1", "2"])
+
+    assert result == 0
+    client_class.return_value.set_selected_clip.assert_called_once_with(1, 2)
+
+
+def test_select_device_command_sets_indexes():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["select-device", "1", "2"])
+
+    assert result == 0
+    client_class.return_value.set_selected_device.assert_called_once_with(1, 2)
 
 
 def test_scene_name_command_prints_name(capsys):
@@ -359,6 +475,40 @@ def test_metronome_set_command_sets_state():
 
     assert result == 0
     client_class.return_value.set_metronome.assert_called_once_with(False)
+
+
+def test_loop_get_command_prints_state(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.get_loop.return_value = True
+
+        result = cli.main(["loop"])
+
+    assert result == 0
+    assert "Loop: on" in capsys.readouterr().out
+
+
+def test_loop_set_command_sets_state():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["loop", "off"])
+
+    assert result == 0
+    client_class.return_value.set_loop.assert_called_once_with(False)
+
+
+def test_loop_start_set_command_sets_beats():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["loop-start", "4"])
+
+    assert result == 0
+    client_class.return_value.set_loop_start.assert_called_once_with(4.0)
+
+
+def test_record_mode_set_command_sets_state():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["record-mode", "on"])
+
+    assert result == 0
+    client_class.return_value.set_record_mode.assert_called_once_with(True)
 
 
 def test_stop_all_clips_command_calls_client():
