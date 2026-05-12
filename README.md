@@ -41,6 +41,9 @@ AbletonOSC listens on OSC port `11000` by default and sends replies to port
 ```powershell
 ableton-bridge status
 ableton-bridge doctor
+ableton-bridge tempo-get
+ableton-bridge current-time
+ableton-bridge track-clips 0
 ableton-bridge play
 ableton-bridge stop
 ableton-bridge tempo 124

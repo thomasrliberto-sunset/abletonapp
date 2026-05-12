@@ -22,6 +22,37 @@ def test_tempo_command_uses_bpm():
     client_class.return_value.set_tempo.assert_called_once_with(128.0)
 
 
+def test_tempo_get_command_prints_current_tempo(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.get_tempo.return_value = 123.5
+
+        result = cli.main(["tempo-get"])
+
+    assert result == 0
+    assert "Tempo: 123.5 BPM" in capsys.readouterr().out
+
+
+def test_current_time_command_prints_current_time(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.current_time.return_value = 16.0
+
+        result = cli.main(["current-time"])
+
+    assert result == 0
+    assert "Current time: 16 beats" in capsys.readouterr().out
+
+
+def test_track_clips_command_prints_clip_names(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.track_clips.return_value = ("Intro", "Drop")
+
+        result = cli.main(["track-clips", "0"])
+
+    assert result == 0
+    assert "0: Intro" in capsys.readouterr().out
+    client_class.return_value.track_clips.assert_called_once_with(0)
+
+
 def test_doctor_returns_zero_when_setup_and_status_are_ok(tmp_path, capsys):
     remote_scripts = tmp_path / "Remote Scripts"
     abletonosc = remote_scripts / "AbletonOSC"

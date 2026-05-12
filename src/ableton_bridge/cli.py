@@ -47,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("status", help="Check whether AbletonOSC replies.")
     subparsers.add_parser("doctor", help="Check local setup and AbletonOSC reachability.")
+    subparsers.add_parser("tempo-get", help="Print the current song tempo.")
+    subparsers.add_parser("current-time", help="Print the current song time in beats.")
     subparsers.add_parser("play", help="Start playback.")
     subparsers.add_parser("stop", help="Stop playback.")
     subparsers.add_parser("tracks", help="List track names.")
@@ -57,6 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
     fire_parser = subparsers.add_parser("fire-clip", help="Fire a session clip.")
     fire_parser.add_argument("track_index", type=int, help="Zero-based track index.")
     fire_parser.add_argument("clip_index", type=int, help="Zero-based clip index.")
+
+    clips_parser = subparsers.add_parser("track-clips", help="List clip names on a track.")
+    clips_parser.add_argument("track_index", type=int, help="Zero-based track index.")
 
     return parser
 
@@ -109,6 +114,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"AbletonOSC status: {client.status()}")
         elif args.command == "doctor":
             return run_doctor(client)
+        elif args.command == "tempo-get":
+            print(f"Tempo: {client.get_tempo():g} BPM")
+        elif args.command == "current-time":
+            print(f"Current time: {client.current_time():g} beats")
         elif args.command == "play":
             client.play()
             print("Playback started.")
@@ -128,6 +137,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "fire-clip":
             client.fire_clip(args.track_index, args.clip_index)
             print(f"Fired clip {args.clip_index} on track {args.track_index}.")
+        elif args.command == "track-clips":
+            clips = client.track_clips(args.track_index)
+            if clips:
+                for index, name in enumerate(clips):
+                    print(f"{index}: {name}")
+            else:
+                print(f"No clips returned for track {args.track_index}.")
     except (AbletonOSCError, OSError, ValueError) as exc:
         logging.error("%s", exc)
         return 1

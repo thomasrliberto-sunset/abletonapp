@@ -49,12 +49,42 @@ class AbletonOSCClient:
         self.ensure_reachable()
         self.send("/live/song/set/tempo", float(bpm))
 
+    def get_tempo(self) -> float:
+        reply = self.query(
+            "/live/song/get/tempo",
+            expected_address="/live/song/get/tempo",
+        )
+        if not reply.values:
+            raise AbletonOSCError("AbletonOSC returned no tempo value.")
+        return float(reply.values[0])
+
+    def current_time(self) -> float:
+        reply = self.query(
+            "/live/song/get/current_song_time",
+            expected_address="/live/song/get/current_song_time",
+        )
+        if not reply.values:
+            raise AbletonOSCError("AbletonOSC returned no current song time.")
+        return float(reply.values[0])
+
     def tracks(self) -> tuple[str, ...]:
         reply = self.query(
             "/live/song/get/track_names",
             expected_address="/live/song/get/track_names",
         )
         return tuple(str(value) for value in reply.values)
+
+    def track_clips(self, track_index: int) -> tuple[str, ...]:
+        if track_index < 0:
+            raise ValueError("Track index must be zero or greater.")
+        reply = self.query(
+            "/live/track/get/clips/name",
+            int(track_index),
+            expected_address="/live/track/get/clips/name",
+        )
+        if not reply.values:
+            return ()
+        return tuple(str(value) for value in reply.values[1:])
 
     def fire_clip(self, track_index: int, clip_index: int) -> None:
         if track_index < 0 or clip_index < 0:

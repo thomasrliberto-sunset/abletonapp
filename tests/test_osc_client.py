@@ -34,6 +34,28 @@ def test_set_tempo_rejects_non_positive_bpm():
         client.set_tempo(0)
 
 
+def test_get_tempo_returns_float_from_reply():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/song/get/tempo", (127.5,)),
+    ):
+        assert client.get_tempo() == 127.5
+
+
+def test_current_time_returns_float_from_reply():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/song/get/current_song_time", (32.0,)),
+    ):
+        assert client.current_time() == 32.0
+
+
 def test_tracks_returns_names_from_reply():
     client = AbletonOSCClient()
 
@@ -43,6 +65,24 @@ def test_tracks_returns_names_from_reply():
         return_value=OSCReply("/live/song/get/track_names", ("Drums", "Bass")),
     ):
         assert client.tracks() == ("Drums", "Bass")
+
+
+def test_track_clips_skips_track_id_in_reply():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/track/get/clips/name", (0, "Intro", "Drop")),
+    ):
+        assert client.track_clips(0) == ("Intro", "Drop")
+
+
+def test_track_clips_rejects_negative_index():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.track_clips(-1)
 
 
 def test_fire_clip_rejects_negative_indexes():
