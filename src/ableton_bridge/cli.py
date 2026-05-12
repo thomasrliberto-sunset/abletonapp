@@ -75,6 +75,34 @@ def build_parser() -> argparse.ArgumentParser:
     clips_parser = subparsers.add_parser("track-clips", help="List clip names on a track.")
     clips_parser.add_argument("track_index", type=int, help="Zero-based track index.")
 
+    track_name_parser = subparsers.add_parser("track-name", help="Print a track name.")
+    track_name_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
+    track_color_parser = subparsers.add_parser("track-color", help="Print a track color value.")
+    track_color_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+
+    track_volume_parser = subparsers.add_parser("track-volume", help="Get or set track volume.")
+    track_volume_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    track_volume_parser.add_argument("volume", nargs="?", type=float, help="Optional volume, 0.0 to 1.0.")
+
+    track_pan_parser = subparsers.add_parser("track-pan", help="Get or set track panning.")
+    track_pan_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+    track_pan_parser.add_argument("panning", nargs="?", type=float, help="Optional panning, -1.0 to 1.0.")
+
+    for command, help_text in (
+        ("track-mute", "Get or set track mute state."),
+        ("track-solo", "Get or set track solo state."),
+        ("track-arm", "Get or set track arm state."),
+    ):
+        track_bool_parser = subparsers.add_parser(command, help=help_text)
+        track_bool_parser.add_argument("track_index", type=int, help="Zero-based track index.")
+        track_bool_parser.add_argument(
+            "state",
+            nargs="?",
+            choices=("on", "off"),
+            help="Optional state to set.",
+        )
+
     stop_track_parser = subparsers.add_parser(
         "stop-track-clips",
         help="Stop all clips on one track.",
@@ -188,6 +216,43 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"{index}: {name}")
             else:
                 print(f"No clips returned for track {args.track_index}.")
+        elif args.command == "track-name":
+            print(f"Track {args.track_index}: {client.track_name(args.track_index)}")
+        elif args.command == "track-color":
+            print(f"Track {args.track_index} color: {client.track_color(args.track_index)}")
+        elif args.command == "track-volume":
+            if args.volume is None:
+                print(f"Track {args.track_index} volume: {client.track_volume(args.track_index):g}")
+            else:
+                client.set_track_volume(args.track_index, args.volume)
+                print(f"Track {args.track_index} volume set to {args.volume:g}.")
+        elif args.command == "track-pan":
+            if args.panning is None:
+                print(f"Track {args.track_index} panning: {client.track_panning(args.track_index):g}")
+            else:
+                client.set_track_panning(args.track_index, args.panning)
+                print(f"Track {args.track_index} panning set to {args.panning:g}.")
+        elif args.command == "track-mute":
+            if args.state is None:
+                state = "on" if client.track_mute(args.track_index) else "off"
+                print(f"Track {args.track_index} mute: {state}")
+            else:
+                client.set_track_mute(args.track_index, args.state == "on")
+                print(f"Track {args.track_index} mute set to {args.state}.")
+        elif args.command == "track-solo":
+            if args.state is None:
+                state = "on" if client.track_solo(args.track_index) else "off"
+                print(f"Track {args.track_index} solo: {state}")
+            else:
+                client.set_track_solo(args.track_index, args.state == "on")
+                print(f"Track {args.track_index} solo set to {args.state}.")
+        elif args.command == "track-arm":
+            if args.state is None:
+                state = "on" if client.track_arm(args.track_index) else "off"
+                print(f"Track {args.track_index} arm: {state}")
+            else:
+                client.set_track_arm(args.track_index, args.state == "on")
+                print(f"Track {args.track_index} arm set to {args.state}.")
         elif args.command == "stop-track-clips":
             client.stop_track_clips(args.track_index)
             print(f"Stopped all clips on track {args.track_index}.")

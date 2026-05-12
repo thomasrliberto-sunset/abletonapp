@@ -56,6 +56,14 @@ ableton-bridge stop-all-clips
 ableton-bridge stop-track-clips 0
 ableton-bridge tempo 124
 ableton-bridge tracks
+ableton-bridge track-name 0
+ableton-bridge track-color 0
+ableton-bridge track-volume 0
+ableton-bridge track-volume 0 0.75
+ableton-bridge track-pan 0 -0.25
+ableton-bridge track-mute 0 on
+ableton-bridge track-solo 0 off
+ableton-bridge track-arm 0 on
 ableton-bridge fire-clip 0 0
 ```
 

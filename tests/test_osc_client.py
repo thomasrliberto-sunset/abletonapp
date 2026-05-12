@@ -185,6 +185,91 @@ def test_track_clips_rejects_negative_index():
         client.track_clips(-1)
 
 
+def test_track_name_returns_name():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_track_property", return_value="Bass") as prop:
+        assert client.track_name(1) == "Bass"
+
+    prop.assert_called_once_with("name", 1)
+
+
+def test_track_volume_returns_float():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_track_property", return_value=0.8):
+        assert client.track_volume(0) == 0.8
+
+
+def test_set_track_volume_sends_value():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_track_volume(0, 0.5)
+
+    send.assert_called_once_with("/live/track/set/volume", 0, 0.5)
+
+
+def test_set_track_volume_rejects_out_of_range_value():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.set_track_volume(0, 1.5)
+
+
+def test_set_track_panning_sends_value():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_track_panning(1, -0.25)
+
+    send.assert_called_once_with("/live/track/set/panning", 1, -0.25)
+
+
+def test_set_track_panning_rejects_out_of_range_value():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.set_track_panning(0, -1.5)
+
+
+def test_track_mute_returns_bool():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_track_property", return_value=1):
+        assert client.track_mute(0) is True
+
+
+def test_track_solo_returns_bool():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_track_property", return_value=0):
+        assert client.track_solo(0) is False
+
+
+def test_set_track_arm_sends_integer_state():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_track_arm(2, True)
+
+    send.assert_called_once_with("/live/track/set/arm", 2, 1)
+
+
+def test_track_property_queries_and_returns_value_after_track_index():
+    client = AbletonOSCClient()
+
+    with patch.object(
+        client,
+        "query",
+        return_value=OSCReply("/live/track/get/color", (0, 123456)),
+    ):
+        assert client.track_color(0) == 123456
+
+
 def test_fire_clip_rejects_negative_indexes():
     client = AbletonOSCClient()
 

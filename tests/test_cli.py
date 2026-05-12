@@ -53,6 +53,68 @@ def test_track_clips_command_prints_clip_names(capsys):
     client_class.return_value.track_clips.assert_called_once_with(0)
 
 
+def test_track_name_command_prints_name(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.track_name.return_value = "Bass"
+
+        result = cli.main(["track-name", "1"])
+
+    assert result == 0
+    assert "Track 1: Bass" in capsys.readouterr().out
+
+
+def test_track_volume_get_command_prints_volume(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.track_volume.return_value = 0.75
+
+        result = cli.main(["track-volume", "0"])
+
+    assert result == 0
+    assert "Track 0 volume: 0.75" in capsys.readouterr().out
+
+
+def test_track_volume_set_command_sets_volume():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["track-volume", "0", "0.5"])
+
+    assert result == 0
+    client_class.return_value.set_track_volume.assert_called_once_with(0, 0.5)
+
+
+def test_track_pan_set_command_sets_panning():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["track-pan", "0", "-0.25"])
+
+    assert result == 0
+    client_class.return_value.set_track_panning.assert_called_once_with(0, -0.25)
+
+
+def test_track_mute_get_command_prints_state(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.track_mute.return_value = True
+
+        result = cli.main(["track-mute", "0"])
+
+    assert result == 0
+    assert "Track 0 mute: on" in capsys.readouterr().out
+
+
+def test_track_solo_set_command_sets_state():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["track-solo", "0", "on"])
+
+    assert result == 0
+    client_class.return_value.set_track_solo.assert_called_once_with(0, True)
+
+
+def test_track_arm_set_command_sets_state():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["track-arm", "0", "off"])
+
+    assert result == 0
+    client_class.return_value.set_track_arm.assert_called_once_with(0, False)
+
+
 def test_selected_track_command_prints_index(capsys):
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         client_class.return_value.selected_track.return_value = 2

@@ -48,8 +48,7 @@ class AbletonOSCClient:
         self.send("/live/song/stop_all_clips")
 
     def stop_track_clips(self, track_index: int) -> None:
-        if track_index < 0:
-            raise ValueError("Track index must be zero or greater.")
+        self._validate_index(track_index, "Track index")
         self.ensure_reachable()
         self.send("/live/track/stop_all_clips", int(track_index))
 
@@ -116,8 +115,7 @@ class AbletonOSCClient:
         return int(reply.values[0])
 
     def scene_name(self, scene_index: int) -> str:
-        if scene_index < 0:
-            raise ValueError("Scene index must be zero or greater.")
+        self._validate_index(scene_index, "Scene index")
         reply = self.query(
             "/live/scene/get/name",
             int(scene_index),
@@ -139,8 +137,7 @@ class AbletonOSCClient:
         )
 
     def track_clips(self, track_index: int) -> tuple[str, ...]:
-        if track_index < 0:
-            raise ValueError("Track index must be zero or greater.")
+        self._validate_index(track_index, "Track index")
         reply = self.query(
             "/live/track/get/clips/name",
             int(track_index),
@@ -150,9 +147,53 @@ class AbletonOSCClient:
             return ()
         return tuple(str(value) for value in reply.values[1:])
 
+    def track_name(self, track_index: int) -> str:
+        return str(self._track_property("name", track_index))
+
+    def track_color(self, track_index: int) -> int:
+        return int(self._track_property("color", track_index))
+
+    def track_volume(self, track_index: int) -> float:
+        return float(self._track_property("volume", track_index))
+
+    def set_track_volume(self, track_index: int, volume: float) -> None:
+        self._validate_index(track_index, "Track index")
+        if not 0 <= volume <= 1:
+            raise ValueError("Track volume must be between 0.0 and 1.0.")
+        self.ensure_reachable()
+        self.send("/live/track/set/volume", int(track_index), float(volume))
+
+    def track_panning(self, track_index: int) -> float:
+        return float(self._track_property("panning", track_index))
+
+    def set_track_panning(self, track_index: int, panning: float) -> None:
+        self._validate_index(track_index, "Track index")
+        if not -1 <= panning <= 1:
+            raise ValueError("Track panning must be between -1.0 and 1.0.")
+        self.ensure_reachable()
+        self.send("/live/track/set/panning", int(track_index), float(panning))
+
+    def track_mute(self, track_index: int) -> bool:
+        return bool(self._track_property("mute", track_index))
+
+    def set_track_mute(self, track_index: int, enabled: bool) -> None:
+        self._set_track_bool_property("mute", track_index, enabled)
+
+    def track_solo(self, track_index: int) -> bool:
+        return bool(self._track_property("solo", track_index))
+
+    def set_track_solo(self, track_index: int, enabled: bool) -> None:
+        self._set_track_bool_property("solo", track_index, enabled)
+
+    def track_arm(self, track_index: int) -> bool:
+        return bool(self._track_property("arm", track_index))
+
+    def set_track_arm(self, track_index: int, enabled: bool) -> None:
+        self._set_track_bool_property("arm", track_index, enabled)
+
     def fire_clip(self, track_index: int, clip_index: int) -> None:
-        if track_index < 0 or clip_index < 0:
-            raise ValueError("Track and clip indexes must be zero or greater.")
+        self._validate_index(track_index, "Track index")
+        self._validate_index(clip_index, "Clip index")
         self.ensure_reachable()
         self.send("/live/clip/fire", int(track_index), int(clip_index))
 
@@ -207,3 +248,25 @@ class AbletonOSCClient:
             "AbletonOSC is selected as a Control Surface, and the host/port "
             f"({self.config.host}:{self.config.port}) are correct."
         )
+
+    def _track_property(self, property_name: str, track_index: int) -> Any:
+        self._validate_index(track_index, "Track index")
+        address = f"/live/track/get/{property_name}"
+        reply = self.query(address, int(track_index), expected_address=address)
+        if len(reply.values) < 2:
+            raise AbletonOSCError(f"AbletonOSC returned no track {property_name} value.")
+        return reply.values[1]
+
+    def _set_track_bool_property(
+        self,
+        property_name: str,
+        track_index: int,
+        enabled: bool,
+    ) -> None:
+        self._validate_index(track_index, "Track index")
+        self.ensure_reachable()
+        self.send(f"/live/track/set/{property_name}", int(track_index), 1 if enabled else 0)
+
+    def _validate_index(self, value: int, label: str) -> None:
+        if value < 0:
+            raise ValueError(f"{label} must be zero or greater.")
