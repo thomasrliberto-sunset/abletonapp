@@ -50,6 +50,16 @@ ableton-bridge selected-scene
 ableton-bridge select-track 0
 ableton-bridge select-scene 0
 ableton-bridge scene-name 0
+ableton-bridge scene-color 0
+ableton-bridge scene-state 0
+ableton-bridge scene-tempo 0
+ableton-bridge scene-tempo 0 128
+ableton-bridge scene-tempo-enabled 0 on
+ableton-bridge scene-signature 0
+ableton-bridge scene-signature-enabled 0 off
+ableton-bridge fire-scene 0
+ableton-bridge fire-scene-as-selected 0
+ableton-bridge fire-selected-scene
 ableton-bridge cue-points
 ableton-bridge metronome
 ableton-bridge metronome on

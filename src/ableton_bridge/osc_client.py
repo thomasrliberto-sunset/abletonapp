@@ -125,15 +125,57 @@ class AbletonOSCClient:
         self.send("/live/view/set/selected_scene", int(scene_index))
 
     def scene_name(self, scene_index: int) -> str:
+        return str(self._scene_property("name", scene_index))
+
+    def scene_color(self, scene_index: int) -> int:
+        return int(self._scene_property("color", scene_index))
+
+    def scene_is_empty(self, scene_index: int) -> bool:
+        return bool(self._scene_property("is_empty", scene_index))
+
+    def scene_is_triggered(self, scene_index: int) -> bool:
+        return bool(self._scene_property("is_triggered", scene_index))
+
+    def scene_tempo(self, scene_index: int) -> float:
+        return float(self._scene_property("tempo", scene_index))
+
+    def set_scene_tempo(self, scene_index: int, tempo: float) -> None:
         self._validate_index(scene_index, "Scene index")
-        reply = self.query(
-            "/live/scene/get/name",
-            int(scene_index),
-            expected_address="/live/scene/get/name",
-        )
-        if len(reply.values) < 2:
-            raise AbletonOSCError("AbletonOSC returned no scene name.")
-        return str(reply.values[1])
+        if tempo <= 0:
+            raise ValueError("Scene tempo must be greater than 0 BPM.")
+        self.ensure_reachable()
+        self.send("/live/scene/set/tempo", int(scene_index), float(tempo))
+
+    def scene_tempo_enabled(self, scene_index: int) -> bool:
+        return bool(self._scene_property("tempo_enabled", scene_index))
+
+    def set_scene_tempo_enabled(self, scene_index: int, enabled: bool) -> None:
+        self._set_scene_bool_property("tempo_enabled", scene_index, enabled)
+
+    def scene_time_signature(self, scene_index: int) -> tuple[int, int]:
+        numerator = int(self._scene_property("time_signature_numerator", scene_index))
+        denominator = int(self._scene_property("time_signature_denominator", scene_index))
+        return numerator, denominator
+
+    def scene_time_signature_enabled(self, scene_index: int) -> bool:
+        return bool(self._scene_property("time_signature_enabled", scene_index))
+
+    def set_scene_time_signature_enabled(self, scene_index: int, enabled: bool) -> None:
+        self._set_scene_bool_property("time_signature_enabled", scene_index, enabled)
+
+    def fire_scene(self, scene_index: int) -> None:
+        self._validate_index(scene_index, "Scene index")
+        self.ensure_reachable()
+        self.send("/live/scene/fire", int(scene_index))
+
+    def fire_scene_as_selected(self, scene_index: int) -> None:
+        self._validate_index(scene_index, "Scene index")
+        self.ensure_reachable()
+        self.send("/live/scene/fire_as_selected", int(scene_index))
+
+    def fire_selected_scene(self) -> None:
+        self.ensure_reachable()
+        self.send("/live/scene/fire_selected")
 
     def cue_points(self) -> tuple[tuple[str, float], ...]:
         reply = self.query(
@@ -386,6 +428,19 @@ class AbletonOSCClient:
         if len(reply.values) < 3:
             raise AbletonOSCError(f"AbletonOSC returned no clip {property_name} value.")
         return reply.values[2]
+
+    def _scene_property(self, property_name: str, scene_index: int) -> Any:
+        self._validate_index(scene_index, "Scene index")
+        address = f"/live/scene/get/{property_name}"
+        reply = self.query(address, int(scene_index), expected_address=address)
+        if len(reply.values) < 2:
+            raise AbletonOSCError(f"AbletonOSC returned no scene {property_name} value.")
+        return reply.values[1]
+
+    def _set_scene_bool_property(self, property_name: str, scene_index: int, enabled: bool) -> None:
+        self._validate_index(scene_index, "Scene index")
+        self.ensure_reachable()
+        self.send(f"/live/scene/set/{property_name}", int(scene_index), 1 if enabled else 0)
 
     def _device_property(self, property_name: str, track_index: int, device_index: int) -> Any:
         self._validate_index(track_index, "Track index")

@@ -161,6 +161,100 @@ def test_set_selected_scene_sends_index():
 def test_scene_name_returns_name_after_scene_index():
     client = AbletonOSCClient()
 
+    with patch.object(client, "_scene_property", return_value="Verse") as prop:
+        assert client.scene_name(0) == "Verse"
+
+    prop.assert_called_once_with("name", 0)
+
+
+def test_scene_color_returns_int():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_scene_property", return_value=123):
+        assert client.scene_color(0) == 123
+
+
+def test_scene_is_empty_returns_bool():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_scene_property", return_value=0):
+        assert client.scene_is_empty(0) is False
+
+
+def test_scene_tempo_returns_float():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_scene_property", return_value=128.0):
+        assert client.scene_tempo(0) == 128.0
+
+
+def test_set_scene_tempo_sends_tempo():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_scene_tempo(0, 127.5)
+
+    send.assert_called_once_with("/live/scene/set/tempo", 0, 127.5)
+
+
+def test_set_scene_tempo_rejects_non_positive_tempo():
+    client = AbletonOSCClient()
+
+    with pytest.raises(ValueError):
+        client.set_scene_tempo(0, 0)
+
+
+def test_scene_time_signature_returns_pair():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "_scene_property", side_effect=(7, 8)):
+        assert client.scene_time_signature(0) == (7, 8)
+
+
+def test_set_scene_tempo_enabled_sends_integer_state():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.set_scene_tempo_enabled(0, True)
+
+    send.assert_called_once_with("/live/scene/set/tempo_enabled", 0, 1)
+
+
+def test_fire_scene_sends_fire():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.fire_scene(2)
+
+    send.assert_called_once_with("/live/scene/fire", 2)
+
+
+def test_fire_scene_as_selected_sends_fire_as_selected():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.fire_scene_as_selected(2)
+
+    send.assert_called_once_with("/live/scene/fire_as_selected", 2)
+
+
+def test_fire_selected_scene_sends_fire_selected():
+    client = AbletonOSCClient()
+
+    with patch.object(client, "status", return_value="ok"):
+        with patch.object(client, "send") as send:
+            client.fire_selected_scene()
+
+    send.assert_called_once_with("/live/scene/fire_selected")
+
+
+def test_scene_property_queries_and_returns_value_after_index():
+    client = AbletonOSCClient()
+
     with patch.object(
         client,
         "query",

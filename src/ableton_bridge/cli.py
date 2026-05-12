@@ -134,6 +134,63 @@ def build_parser() -> argparse.ArgumentParser:
     scene_name_parser = subparsers.add_parser("scene-name", help="Print a scene name.")
     scene_name_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
 
+    scene_color_parser = subparsers.add_parser("scene-color", help="Print a scene color value.")
+    scene_color_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    scene_state_parser = subparsers.add_parser(
+        "scene-state",
+        help="Print scene empty/triggered state.",
+    )
+    scene_state_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    scene_tempo_parser = subparsers.add_parser("scene-tempo", help="Get or set scene tempo.")
+    scene_tempo_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+    scene_tempo_parser.add_argument("tempo", nargs="?", type=float, help="Optional tempo in BPM.")
+
+    scene_tempo_enabled_parser = subparsers.add_parser(
+        "scene-tempo-enabled",
+        help="Get or set whether scene tempo is enabled.",
+    )
+    scene_tempo_enabled_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+    scene_tempo_enabled_parser.add_argument(
+        "state",
+        nargs="?",
+        choices=("on", "off"),
+        help="Optional state to set.",
+    )
+
+    scene_sig_parser = subparsers.add_parser(
+        "scene-signature",
+        help="Print scene time signature.",
+    )
+    scene_sig_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    scene_sig_enabled_parser = subparsers.add_parser(
+        "scene-signature-enabled",
+        help="Get or set whether scene time signature is enabled.",
+    )
+    scene_sig_enabled_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+    scene_sig_enabled_parser.add_argument(
+        "state",
+        nargs="?",
+        choices=("on", "off"),
+        help="Optional state to set.",
+    )
+
+    fire_scene_parser = subparsers.add_parser("fire-scene", help="Fire a scene.")
+    fire_scene_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    fire_scene_selected_parser = subparsers.add_parser(
+        "fire-scene-as-selected",
+        help="Fire a scene and select the next scene.",
+    )
+    fire_scene_selected_parser.add_argument("scene_index", type=int, help="Zero-based scene index.")
+
+    subparsers.add_parser(
+        "fire-selected-scene",
+        help="Fire the selected scene and select the next scene.",
+    )
+
     set_selected_track_parser = subparsers.add_parser(
         "select-track",
         help="Set the selected track.",
@@ -245,6 +302,44 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Selected scene set to {args.scene_index}.")
         elif args.command == "scene-name":
             print(f"Scene {args.scene_index}: {client.scene_name(args.scene_index)}")
+        elif args.command == "scene-color":
+            print(f"Scene {args.scene_index} color: {client.scene_color(args.scene_index)}")
+        elif args.command == "scene-state":
+            empty = "yes" if client.scene_is_empty(args.scene_index) else "no"
+            triggered = "yes" if client.scene_is_triggered(args.scene_index) else "no"
+            print(f"Scene {args.scene_index} empty: {empty}, triggered: {triggered}")
+        elif args.command == "scene-tempo":
+            if args.tempo is None:
+                print(f"Scene {args.scene_index} tempo: {client.scene_tempo(args.scene_index):g} BPM")
+            else:
+                client.set_scene_tempo(args.scene_index, args.tempo)
+                print(f"Scene {args.scene_index} tempo set to {args.tempo:g} BPM.")
+        elif args.command == "scene-tempo-enabled":
+            if args.state is None:
+                state = "on" if client.scene_tempo_enabled(args.scene_index) else "off"
+                print(f"Scene {args.scene_index} tempo enabled: {state}")
+            else:
+                client.set_scene_tempo_enabled(args.scene_index, args.state == "on")
+                print(f"Scene {args.scene_index} tempo enabled set to {args.state}.")
+        elif args.command == "scene-signature":
+            numerator, denominator = client.scene_time_signature(args.scene_index)
+            print(f"Scene {args.scene_index} time signature: {numerator}/{denominator}")
+        elif args.command == "scene-signature-enabled":
+            if args.state is None:
+                state = "on" if client.scene_time_signature_enabled(args.scene_index) else "off"
+                print(f"Scene {args.scene_index} time signature enabled: {state}")
+            else:
+                client.set_scene_time_signature_enabled(args.scene_index, args.state == "on")
+                print(f"Scene {args.scene_index} time signature enabled set to {args.state}.")
+        elif args.command == "fire-scene":
+            client.fire_scene(args.scene_index)
+            print(f"Fired scene {args.scene_index}.")
+        elif args.command == "fire-scene-as-selected":
+            client.fire_scene_as_selected(args.scene_index)
+            print(f"Fired scene {args.scene_index} as selected.")
+        elif args.command == "fire-selected-scene":
+            client.fire_selected_scene()
+            print("Fired selected scene.")
         elif args.command == "cue-points":
             cue_points = client.cue_points()
             if cue_points:

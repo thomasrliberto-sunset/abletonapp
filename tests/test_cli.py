@@ -258,6 +258,79 @@ def test_scene_name_command_prints_name(capsys):
     assert "Scene 0: Verse" in capsys.readouterr().out
 
 
+def test_scene_color_command_prints_color(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.scene_color.return_value = 456
+
+        result = cli.main(["scene-color", "0"])
+
+    assert result == 0
+    assert "Scene 0 color: 456" in capsys.readouterr().out
+
+
+def test_scene_state_command_prints_state(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.scene_is_empty.return_value = False
+        client_class.return_value.scene_is_triggered.return_value = True
+
+        result = cli.main(["scene-state", "0"])
+
+    assert result == 0
+    assert "Scene 0 empty: no, triggered: yes" in capsys.readouterr().out
+
+
+def test_scene_tempo_get_command_prints_tempo(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.scene_tempo.return_value = 128.0
+
+        result = cli.main(["scene-tempo", "0"])
+
+    assert result == 0
+    assert "Scene 0 tempo: 128 BPM" in capsys.readouterr().out
+
+
+def test_scene_tempo_set_command_sets_tempo():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["scene-tempo", "0", "127.5"])
+
+    assert result == 0
+    client_class.return_value.set_scene_tempo.assert_called_once_with(0, 127.5)
+
+
+def test_scene_tempo_enabled_set_command_sets_state():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["scene-tempo-enabled", "0", "on"])
+
+    assert result == 0
+    client_class.return_value.set_scene_tempo_enabled.assert_called_once_with(0, True)
+
+
+def test_scene_signature_command_prints_signature(capsys):
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        client_class.return_value.scene_time_signature.return_value = (7, 8)
+
+        result = cli.main(["scene-signature", "0"])
+
+    assert result == 0
+    assert "Scene 0 time signature: 7/8" in capsys.readouterr().out
+
+
+def test_fire_scene_command_calls_client():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["fire-scene", "2"])
+
+    assert result == 0
+    client_class.return_value.fire_scene.assert_called_once_with(2)
+
+
+def test_fire_selected_scene_command_calls_client():
+    with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
+        result = cli.main(["fire-selected-scene"])
+
+    assert result == 0
+    client_class.return_value.fire_selected_scene.assert_called_once_with()
+
+
 def test_cue_points_command_prints_points(capsys):
     with patch("ableton_bridge.cli.AbletonOSCClient") as client_class:
         client_class.return_value.cue_points.return_value = (("Intro", 1.0), ("Drop", 33.0))
